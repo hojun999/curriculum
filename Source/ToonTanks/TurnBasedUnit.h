@@ -1,10 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "TurnBasedUnit.generated.h"
+#include "TurnActionTypes.h"
+#include "Containers/Queue.h"
 
 class ATurnManager;
 
@@ -44,26 +44,56 @@ public:
 	// 턴이 종료되었을 때 호출될 함수
 	virtual void OnTurnEnded();
 
-	UFUNCTION(BlueprintCallable, Category = "Movemnet")
+	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void MoveUp();
 
-	UFUNCTION(BlueprintCallable, Category = "Movemnet")
+	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void MoveDown();
 
-	UFUNCTION(BlueprintCallable, Category = "Movemnet")
+	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void MoveLeft();
 
-	UFUNCTION(BlueprintCallable, Category = "Movemnet")
+	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void MoveRight();
 
 private:
-	// 실제 이동을 수행하는 내부 함수
-	void AttemptMove(FIntPoint TargetCoordinate);
+	//// 실제 이동을 수행하는 내부 함수
+	//void AttemptMove(FIntPoint TargetCoordinate);
 
 protected:
 	// 모든 유닛이 TurnManager에 쉽게 접근할 수 있도록 참조 저장
 	UPROPERTY()
 	ATurnManager* TurnManager;
+
+	// 턴마다 주어지는 최대 행동력
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn System")
+	int32 MaxActionPoints = 3;
+
+	// 현재 남은 행동력(큐에 추가할 때마다 차감)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn System")
+	int32 CurrentActionPoints;
+
+	// 수행할 행동을 순서대로 저장하는 큐
+	TQueue<EUnitAction> ActionQueue;
+
+	// 현재 큐의 행동을 실행 중인지 여부 (중복 입력 방지)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn System")
+	bool bIsExecutingActions = false;
+
+	// 큐에 쌓인 action 처리 함수
+	void ProcessNextAction();
+
+	// 턴을 완전히 종료하고 TrunManager에게 알리는 함수
+	void EndTurn();
+
+	// 기존 이동 함수들 입력 바인등요으로 래핑
+	void AddMoveUpAction();
+	void AddMoveDownAction();
+	void AddMoveLeftAction();
+	void AddMoveRightAction();
+
+	// 실제 이동 로직(bool을 반환하여 성공/실패를 알림)
+	bool AttemptMove(FIntPoint TargetCoordinate);
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

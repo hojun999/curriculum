@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GridManager.h"
 
+
 // Sets default values
 ATurnBasedUnit::ATurnBasedUnit()
 {
@@ -26,14 +27,36 @@ void ATurnBasedUnit::BeginPlay()
 void ATurnBasedUnit::OnTurnStarted() {
 	UE_LOG(LogTemp, Log, TEXT("%s's turn started."), *GetName());
 	bIsMyTurn = true;	// 내 턴이라고 상태만 변경한 후 대기
+	bIsExecutingActions = false;
 
-	// TODO : 행동을 위한 UI활성화나 상태 변경 로직 추가
+	// 턴 시작 시 행동력 및 액션 큐 초기화
+	CurrentActionPoints = MaxActionPoints;
+	ActionQueue.Empty();
+
+	// TODO 1 : 행동을 위한 UI활성화나 상태 변경 로직 추가
 	// 행동이 끝나면 반드시 TurnManager에게 알려줘야됨
 	// ex : Atack()이 끝나면 TurnManager->OnUnitActionFinished(); 호출
-
 	// 지금은 즉시 행동을 마쳤다고 가정
-	
+
+	// TODO 2 : 행동을 위한 grid UI 활성화
 }
+
+void ATurnBasedUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	// 입력 바인딩 예시 (실제 게임에서는 UI 버튼 등에서 호출될 수 있음)
+	PlayerInputComponent->BindAction("MoveUp", IE_Pressed, this, &ATurnBasedUnit::MoveUp);
+	PlayerInputComponent->BindAction("MoveDown", IE_Pressed, this, &ATurnBasedUnit::MoveDown);
+	PlayerInputComponent->BindAction("MoveLeft", IE_Pressed, this, &ATurnBasedUnit::MoveLeft);
+	PlayerInputComponent->BindAction("MoveRight", IE_Pressed, this, &ATurnBasedUnit::MoveRight);
+}
+
+// 입력 바인딩용 래퍼 함수들
+void ATurnBasedUnit::AddMoveUpAction() { ActionQueue.Enqueue(EUnitAction::MoveUp); }
+void ATurnBasedUnit::AddMoveDownAction() { ActionQueue.Enqueue(EUnitAction::MoveDown); }
+void ATurnBasedUnit::AddMoveLeftAction() { ActionQueue.Enqueue(EUnitAction::MoveLeft); }
+void ATurnBasedUnit::AddMoveRightAction() { ActionQueue.Enqueue(EUnitAction::MoveRight); }
+
 
 void ATurnBasedUnit::OnTurnEnded() {
 	UE_LOG(LogTemp, Log, TEXT("%s's turn ended."), *GetName());
@@ -65,16 +88,16 @@ void ATurnBasedUnit::MoveRight()
 	AttemptMove(CurrentGridCoordinate + FIntPoint(1, 0));
 }
 
-void ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
+bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 {
 	// 내 턴일 때만 이동 가능
 	if (!bIsMyTurn)
 		return;
 
-	// GridManager가 월드에 존재하는지 확인
+	// GridManager 유효성 검사
 	AGridManager* GridManager = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
 	if (!GridManager)
-		return;
+		return false;
 
 	FVector TargetWorldLocation;
 	// GridManager에게 목표 좌표 이동 가능 여부 확인
@@ -90,15 +113,10 @@ void ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 		// 나의 현재 그리드 좌표 갱신
 		CurrentGridCoordinate = TargetCoordinate;
 
-		// 턴 종료
-		// (이동 후 추가 행동이 가능한 경우 해당 코드 수정(다른 곳으로 옮겨야됨) 필요)
-		PerformAction(); // 턴 종료 함수 호출
+		return true;
 	}
-	else {
-		// 이동 불가능한 위치일 경우
-		UE_LOG(LogTemp, Warning, TEXT("Cannot move to %s. It's an invalid location."), *TargetCoordinate.ToString());
-	}
-
+	
+	return false;
 }
 
 void ATurnBasedUnit::PerformAction() {
