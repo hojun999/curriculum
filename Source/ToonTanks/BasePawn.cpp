@@ -47,6 +47,16 @@ void ABasePawn::HandleDestruction()
 	}
 }
 
+void ABasePawn::OnTurnStarted_Implementation()
+{
+	Super::OnTurnEnded_Implementation();
+}
+
+void ABasePawn::OnTurnEnded_Implementation()
+{
+	Super::OnTurnEnded_Implementation();
+}
+
 void ABasePawn::RotateTurret(FVector LookAtTarget)
 {
 	FVector ToTarget = LookAtTarget - TurretMesh->GetComponentLocation();

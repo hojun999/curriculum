@@ -26,6 +26,9 @@ public:
 	
 	void HandleDestruction();
 
+	virtual void OnTurnStarted_Implementation() override;
+	virtual void OnTurnEnded_Implementation() override;
+
 protected:
 	void RotateTurret(FVector LookAtTarget);
 

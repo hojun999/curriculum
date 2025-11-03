@@ -2,9 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "TurnBasedUnit.generated.h"
 #include "TurnActionTypes.h"
 #include "Containers/Queue.h"
+#include "TurnBasedUnit.generated.h"
 
 class ATurnManager;
 
@@ -38,11 +38,16 @@ public:
 	// GameMode가 유닛을 스폰한 직수 호출할 초기화 함수
 	void Initialize(FIntPoint StartCoordinate);
 
+	// 부모 클래스는 'virtual' 키워드만 사용하여 이 함수들이 재정의될 수 있음을 알림
 	// 턴이 시작되었을 때 TurnManager가 호출할 함수
+	UFUNCTION(BlueprintNativeEvent, Category = "UI")
 	virtual void OnTurnStarted();
+	virtual void OnTurnStarted_Implementation();
 
 	// 턴이 종료되었을 때 호출될 함수
+	UFUNCTION(BlueprintNativeEvent, Category = "UI")
 	virtual void OnTurnEnded();
+	virtual void OnTurnEnded_Implementation();
 
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void MoveUp();
@@ -97,6 +102,16 @@ protected:
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	// ----- UI 관련 변수 -----
+	// 유닛이 사용할 UI 위젯 클래스, BP에서 설정
+	//UPROPERTY(EditDefaultsOnly, Category = "UI")
+	//TSubclassOf<UUserWidget> ActionWidgetClass;
+
+	// BeginPlay에서 생성된 ActionWidget의 실제 인스턴스
+	// 턴마다 재사용을 위한 저장
+	//UPROPERTY()
+	//UUserWidget* ActionWidgetInstance;
 
 public:	
 	// Called every frame

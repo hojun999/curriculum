@@ -78,7 +78,7 @@ void ATurnBasedGameMode::SpawnPawnsForStage()
 
 	ATurnManager* TurnManager = Cast<ATurnManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ATurnManager::StaticClass()));
 	if (TurnManager) {
-		TurnManager->StartCombat();
+		TurnManager->StartCombat(); // 모든 폰들의 배치가 끝난 후 턴을 시작하여 오류 방지
 	}
 	else {
 		UE_LOG(LogTemp, Error, TEXT("SpawnPawnsForStage: TurnManager not found!"));

@@ -22,9 +22,22 @@ void ATurnBasedUnit::BeginPlay()
 	
 	// 게임이 시작되면 월드의 TurnManager를 찾아 저장
 	TurnManager = Cast<ATurnManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ATurnManager::StaticClass()));
+
+	// BP에서 UI 클래스가 지정되었느지 확인
+	//if (ActionWidgetClass) {
+		// 이 폰을 조종하는 플레이어 컨트롤러 가져옴
+		//APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+		// AI가 조종하는 폰이 아닌, 플레이어가 조종하는 폰일 때만 UI 생성
+		//if (PlayerController) {
+		//	// 위젯 생성 및 변수에 저장
+		//	ActionWidgetInstance = CreateWidget<UUserWidget>(PlayerController, ActionWidgetClass);
+		//}
+	//}
+
 }
 
-void ATurnBasedUnit::OnTurnStarted() {
+void ATurnBasedUnit::OnTurnStarted_Implementation() {
 	UE_LOG(LogTemp, Log, TEXT("%s's turn started."), *GetName());
 	bIsMyTurn = true;	// 내 턴이라고 상태만 변경한 후 대기
 	bIsExecutingActions = false;
@@ -32,6 +45,11 @@ void ATurnBasedUnit::OnTurnStarted() {
 	// 턴 시작 시 행동력 및 액션 큐 초기화
 	CurrentActionPoints = MaxActionPoints;
 	ActionQueue.Empty();
+
+	// 턴 시작 시 저장해둔 UI 인스턴스를 뷰포트에 추가
+	//if (ActionWidgetInstance) {
+	//	ActionWidgetInstance->AddToViewport();
+	//}
 
 	// TODO 1 : 행동을 위한 UI활성화나 상태 변경 로직 추가
 	// 행동이 끝나면 반드시 TurnManager에게 알려줘야됨
@@ -58,9 +76,14 @@ void ATurnBasedUnit::AddMoveLeftAction() { ActionQueue.Enqueue(EUnitAction::Move
 void ATurnBasedUnit::AddMoveRightAction() { ActionQueue.Enqueue(EUnitAction::MoveRight); }
 
 
-void ATurnBasedUnit::OnTurnEnded() {
+void ATurnBasedUnit::OnTurnEnded_Implementation() {
 	UE_LOG(LogTemp, Log, TEXT("%s's turn ended."), *GetName());
 	bIsMyTurn = false;	// 내 턴이 끝났음을 표시
+
+	// 턴 종료 시 뷰포트에서 UI 제거
+	//if (ActionWidgetInstance && ActionWidgetInstance->IsInViewport()) {
+	//	ActionWidgetInstance->RemoveFromParent();
+	//}
 }
 
 void ATurnBasedUnit::Initialize(FIntPoint StartCoordinate) {
@@ -92,7 +115,7 @@ bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 {
 	// 내 턴일 때만 이동 가능
 	if (!bIsMyTurn)
-		return;
+		return false;
 
 	// GridManager 유효성 검사
 	AGridManager* GridManager = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
@@ -144,9 +167,9 @@ void ATurnBasedUnit::Tick(float DeltaTime)
 }
 
 // Called to bind functionality to input
-void ATurnBasedUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-}
+//void ATurnBasedUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+//{
+//	Super::SetupPlayerInputComponent(PlayerInputComponent);
+//
+//}
 
