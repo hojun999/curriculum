@@ -25,6 +25,9 @@ public:
 	// 현재 유닛의 행동 완료 시 호출 함수
 	void OnUnitActionFinished();
 
+	// TurnBasedUnit이 자신을 TurnManager에 등록하는 함수
+	void RegisterUnit(ATurnBasedUnit* Unit);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

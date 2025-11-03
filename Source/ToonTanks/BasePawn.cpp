@@ -7,7 +7,6 @@
 #include "GameFramework/FloatingPawnMovement.h"
 #include "Kismet/GameplayStatics.h"
 #include "Projectile.h"
-#include "Kismet/GameplayStatics.h"
 
 ABasePawn::ABasePawn()
 {
@@ -49,7 +48,7 @@ void ABasePawn::HandleDestruction()
 
 void ABasePawn::OnTurnStarted_Implementation()
 {
-	Super::OnTurnEnded_Implementation();
+	Super::OnTurnStarted_Implementation();
 }
 
 void ABasePawn::OnTurnEnded_Implementation()

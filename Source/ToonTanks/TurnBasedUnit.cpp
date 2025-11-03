@@ -23,6 +23,10 @@ void ATurnBasedUnit::BeginPlay()
 	// 게임이 시작되면 월드의 TurnManager를 찾아 저장
 	TurnManager = Cast<ATurnManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ATurnManager::StaticClass()));
 
+	if (TurnManager) {
+		TurnManager->RegisterUnit(this);
+	}
+
 	// BP에서 UI 클래스가 지정되었느지 확인
 	//if (ActionWidgetClass) {
 		// 이 폰을 조종하는 플레이어 컨트롤러 가져옴
@@ -153,10 +157,10 @@ void ATurnBasedUnit::PerformAction() {
 	// TODO: 여기에 실제 이동, 공격 등의 로직을 구현합니다.
 	// 애니메이션이나 이동이 모두 끝난 뒤에 아래 함수를 호출해야 합니다.
 
-	if (TurnManager)
-	{
-		TurnManager->OnUnitActionFinished();
-	}
+	//if (TurnManager)
+	//{
+	//	TurnManager->OnUnitActionFinished();
+	//}
 }
 
 // Called every frame

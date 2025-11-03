@@ -41,12 +41,12 @@ public:
 	// 부모 클래스는 'virtual' 키워드만 사용하여 이 함수들이 재정의될 수 있음을 알림
 	// 턴이 시작되었을 때 TurnManager가 호출할 함수
 	UFUNCTION(BlueprintNativeEvent, Category = "UI")
-	virtual void OnTurnStarted();
+	void OnTurnStarted();
 	virtual void OnTurnStarted_Implementation();
 
 	// 턴이 종료되었을 때 호출될 함수
 	UFUNCTION(BlueprintNativeEvent, Category = "UI")
-	virtual void OnTurnEnded();
+	void OnTurnEnded();
 	virtual void OnTurnEnded_Implementation();
 
 	UFUNCTION(BlueprintCallable, Category = "Movement")

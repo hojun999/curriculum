@@ -23,26 +23,40 @@ void ATurnManager::BeginPlay()
 
 void ATurnManager::StartCombat()
 {
-	// 월드에 있는 모든 아군과 적군 유닛을 찾아 배열에 등록
-	// GetAllActorsOfClass >> 스폰될 때 각 유닛이 스스로 등록되는 방식으로 변경 필요
-	TArray<AActor*> FoundUnits;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATurnBasedUnit::StaticClass(), FoundUnits);
+//	// 월드에 있는 모든 아군과 적군 유닛을 찾아 배열에 등록
+//	// GetAllActorsOfClass >> 스폰될 때 각 유닛이 스스로 등록되는 방식으로 변경 필요
+//	TArray<AActor*> FoundUnits;
+//	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATurnBasedUnit::StaticClass(), FoundUnits);
+//
+//	for (AActor* UnitActor : FoundUnits)
+//	{
+//		ATurnBasedUnit* Unit = Cast<ATurnBasedUnit>(UnitActor);
+//		if (Unit) {
+//			if (Unit->bIsAlly) {
+//				AllyUnits.Add(Unit);
+//			}
+//			else {
+//				EnemyUnits.Add(Unit);
+//			}
+//		}
+//	}
+//
+//	// 아군 턴부터 시작
+	StartAllyTurn();
+}
 
-	for (AActor* UnitActor : FoundUnits)
-	{
-		ATurnBasedUnit* Unit = Cast<ATurnBasedUnit>(UnitActor);
-		if (Unit) {
-			if (Unit->bIsAlly) {
-				AllyUnits.Add(Unit);
-			}
-			else {
-				EnemyUnits.Add(Unit);
-			}
-		}
+void ATurnManager::RegisterUnit(ATurnBasedUnit* Unit)
+{
+	if (!Unit) {
+		return;
 	}
 
-	// 아군 턴부터 시작
-	StartAllyTurn();
+	if (Unit->bIsAlly) {
+		AllyUnits.Add(Unit);
+	}
+	else {
+		EnemyUnits.Add(Unit);
+	}
 }
 
 void ATurnManager::StartAllyTurn()
