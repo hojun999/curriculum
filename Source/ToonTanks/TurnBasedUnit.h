@@ -49,6 +49,10 @@ public:
 	void OnTurnEnded();
 	virtual void OnTurnEnded_Implementation();
 
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	// 행동 제출 함수
+	void ExecuteActionQueue();
+
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void MoveUp();
 
@@ -91,11 +95,18 @@ protected:
 	// 턴을 완전히 종료하고 TrunManager에게 알리는 함수
 	void EndTurn();
 
-	// 기존 이동 함수들 입력 바인등요으로 래핑
+	// 기존 이동 함수들 입력 바인드용으로 래핑
+	UFUNCTION(BlueprintCallable, Category = "UI")
 	void AddMoveUpAction();
+	UFUNCTION(BlueprintCallable, Category = "UI")
 	void AddMoveDownAction();
+	UFUNCTION(BlueprintCallable, Category = "UI")
 	void AddMoveLeftAction();
+	UFUNCTION(BlueprintCallable, Category = "UI")
 	void AddMoveRightAction();
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void AddAttack();
+
 
 	// 실제 이동 로직(bool을 반환하여 성공/실패를 알림)
 	bool AttemptMove(FIntPoint TargetCoordinate);
