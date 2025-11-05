@@ -65,6 +65,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void MoveRight();
 
+	// 턴을 완전히 종료하고 TurnManager에게 알리는 함수
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void EndTurn();
+
 private:
 	//// 실제 이동을 수행하는 내부 함수
 	//void AttemptMove(FIntPoint TargetCoordinate);
@@ -92,8 +96,6 @@ protected:
 	// 큐에 쌓인 action 처리 함수
 	void ProcessNextAction();
 
-	// 턴을 완전히 종료하고 TrunManager에게 알리는 함수
-	void EndTurn();
 
 	// 기존 이동 함수들 입력 바인드용으로 래핑
 	UFUNCTION(BlueprintCallable, Category = "UI")
