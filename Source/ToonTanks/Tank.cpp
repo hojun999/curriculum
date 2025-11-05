@@ -17,7 +17,6 @@ void ATank::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-
 	if (TankPlayerController) {
 		FHitResult HitResult;
 		TankPlayerController->GetHitResultUnderCursor(

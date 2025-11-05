@@ -49,6 +49,8 @@ private:
 
 	int32 CurrentUnitIndex;
 
+	bool bIsCombatStarted = false;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

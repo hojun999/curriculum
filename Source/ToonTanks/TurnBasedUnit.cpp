@@ -27,19 +27,6 @@ void ATurnBasedUnit::BeginPlay()
 	if (TurnManager) {
 		TurnManager->RegisterUnit(this);
 	}
-
-	// BP에서 UI 클래스가 지정되었느지 확인
-	//if (ActionWidgetClass) {
-		// 이 폰을 조종하는 플레이어 컨트롤러 가져옴
-		//APlayerController* PlayerController = Cast<APlayerController>(GetController());
-
-		// AI가 조종하는 폰이 아닌, 플레이어가 조종하는 폰일 때만 UI 생성
-		//if (PlayerController) {
-		//	// 위젯 생성 및 변수에 저장
-		//	ActionWidgetInstance = CreateWidget<UUserWidget>(PlayerController, ActionWidgetClass);
-		//}
-	//}
-
 }
 
 void ATurnBasedUnit::OnTurnStarted_Implementation() {
@@ -51,20 +38,20 @@ void ATurnBasedUnit::OnTurnStarted_Implementation() {
 	CurrentActionPoints = MaxActionPoints;
 	ActionQueue.Empty();
 
+	if (!bIsAlly) {
+		// 적 유닛이라면 AI 실행
+		ExecuteEnemyAI();
+	}
+
 	// TODO 1 : 행동을 위한 UI활성화나 상태 변경 로직 추가
 	// 행동이 끝나면 반드시 TurnManager에게 알려줘야됨
 	// ex : Atack()이 끝나면 TurnManager->OnUnitActionFinished(); 호출
 	// 지금은 즉시 행동을 마쳤다고 가정
 }
 
-void ATurnBasedUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	// 입력 바인딩 예시 (실제 게임에서는 UI 버튼 등에서 호출될 수 있음)
-	PlayerInputComponent->BindAction("MoveUp", IE_Pressed, this, &ATurnBasedUnit::MoveUp);
-	PlayerInputComponent->BindAction("MoveDown", IE_Pressed, this, &ATurnBasedUnit::MoveDown);
-	PlayerInputComponent->BindAction("MoveLeft", IE_Pressed, this, &ATurnBasedUnit::MoveLeft);
-	PlayerInputComponent->BindAction("MoveRight", IE_Pressed, this, &ATurnBasedUnit::MoveRight);
+void ATurnBasedUnit::OnTurnEnded_Implementation() {
+	UE_LOG(LogTemp, Log, TEXT("%s's turn ended."), *GetName());
+	bIsMyTurn = false;	// 내 턴이 끝났음을 표시
 }
 
 void ATurnBasedUnit::ProcessNextAction()
@@ -85,24 +72,27 @@ void ATurnBasedUnit::ProcessNextAction()
 
 	// 큐에 행동이 남아있다면, 하나를 실행
 	bool bActionSuccess = false;
-	FIntPoint TargetCoordinaate = CurrentGridCoordinate;
 
 	switch (NextAction) {
 	case EUnitAction::MoveUp:
-		TargetCoordinate += FIntPoint(0, 1);
-		bActionSuccess = AttemptMove(TargetCoordinaate);
+		UE_LOG(LogTemp, Warning, TEXT("--- Move Up ---"));
+		TargetCoordinate += FIntPoint(1, 0);
+		bActionSuccess = AttemptMove(TargetCoordinate);
 		break;
 	case EUnitAction::MoveDown:
-		TargetCoordinate += FIntPoint(0, -1);
-		bActionSuccess = AttemptMove(TargetCoordinaate);
+		UE_LOG(LogTemp, Warning, TEXT("--- Move Down ---"));
+		TargetCoordinate += FIntPoint(-1, 0);
+		bActionSuccess = AttemptMove(TargetCoordinate);
 		break;
 	case EUnitAction::MoveLeft:
-		TargetCoordinate += FIntPoint(-1, 0);
-		bActionSuccess = AttemptMove(TargetCoordinaate);
+		UE_LOG(LogTemp, Warning, TEXT("--- Move Left ---"));
+		TargetCoordinate += FIntPoint(0, -1);
+		bActionSuccess = AttemptMove(TargetCoordinate);
 		break;
 	case EUnitAction::MoveRight:
-		TargetCoordinate += FIntPoint(1, 0);
-		bActionSuccess = AttemptMove(TargetCoordinaate);
+		UE_LOG(LogTemp, Warning, TEXT("--- Move Right ---"));
+		TargetCoordinate += FIntPoint(0, 1);
+		bActionSuccess = AttemptMove(TargetCoordinate);
 		break;
 	case EUnitAction::Attack:
 		break;
@@ -116,7 +106,7 @@ void ATurnBasedUnit::ProcessNextAction()
 		TimerHandle,
 		this,
 		&ATurnBasedUnit::ProcessNextAction,
-		0.5f,
+		1.5f,
 		false
 	);
 }
@@ -124,6 +114,7 @@ void ATurnBasedUnit::ProcessNextAction()
 void ATurnBasedUnit::EndTurn()
 {
 	if (!bIsMyTurn) {
+		UE_LOG(LogTemp, Warning, TEXT("--- NOT MY TURN ---"));
 		return;
 	}
 
@@ -141,15 +132,16 @@ void ATurnBasedUnit::EndTurn()
 }
 
 // 입력 바인딩용 래퍼 함수들
-void ATurnBasedUnit::AddMoveUpAction() { ActionQueue.Enqueue(EUnitAction::MoveUp); }
-void ATurnBasedUnit::AddMoveDownAction() { ActionQueue.Enqueue(EUnitAction::MoveDown); }
-void ATurnBasedUnit::AddMoveLeftAction() { ActionQueue.Enqueue(EUnitAction::MoveLeft); }
-void ATurnBasedUnit::AddMoveRightAction() { ActionQueue.Enqueue(EUnitAction::MoveRight); }
-void ATurnBasedUnit::AddAttack() { ActionQueue.Enqueue(EUnitAction::Attack); }
+void ATurnBasedUnit::AddMoveUpAction() { ActionQueue.Enqueue(EUnitAction::MoveUp); CommonActionsOnBinding(); }
+void ATurnBasedUnit::AddMoveDownAction() { ActionQueue.Enqueue(EUnitAction::MoveDown); CommonActionsOnBinding(); }
+void ATurnBasedUnit::AddMoveLeftAction() { ActionQueue.Enqueue(EUnitAction::MoveLeft); CommonActionsOnBinding(); }
+void ATurnBasedUnit::AddMoveRightAction() { ActionQueue.Enqueue(EUnitAction::MoveRight); CommonActionsOnBinding(); }
+void ATurnBasedUnit::AddAttack() { ActionQueue.Enqueue(EUnitAction::Attack); CommonActionsOnBinding(); }
 
-void ATurnBasedUnit::OnTurnEnded_Implementation() {
-	UE_LOG(LogTemp, Log, TEXT("%s's turn ended."), *GetName());
-	bIsMyTurn = false;	// 내 턴이 끝났음을 표시
+void ATurnBasedUnit::CommonActionsOnBinding()
+{
+	CurrentActionPoints--;
+	UE_LOG(LogTemp, Warning, TEXT("--- CurrentActionPoints: %d ---"), CurrentActionPoints);
 }
 
 void ATurnBasedUnit::Initialize(FIntPoint StartCoordinate) {
@@ -172,27 +164,6 @@ void ATurnBasedUnit::ExecuteActionQueue()
 	ProcessNextAction();
 }
 
-void ATurnBasedUnit::MoveUp()
-{
-	// 위쪽 타겟 좌표 계산(Y 1 증가)
-	AttemptMove(CurrentGridCoordinate + FIntPoint(0, 1));
-}
-
-void ATurnBasedUnit::MoveDown()
-{
-	AttemptMove(CurrentGridCoordinate + FIntPoint(0, -1));
-}
-
-void ATurnBasedUnit::MoveLeft()
-{
-	AttemptMove(CurrentGridCoordinate + FIntPoint(-1, 0));
-}
-
-void ATurnBasedUnit::MoveRight()
-{
-	AttemptMove(CurrentGridCoordinate + FIntPoint(1, 0));
-}
-
 bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 {
 	// 내 턴일 때만 이동 가능
@@ -205,6 +176,7 @@ bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 		return false;
 
 	FVector TargetWorldLocation;
+
 	// GridManager에게 목표 좌표 이동 가능 여부 확인
 	if (GridManager->GetTileWorldLocation(TargetCoordinate, TargetWorldLocation)) {
 		// 이동 가능한 경우 해당 위치로 액터 이동
@@ -212,7 +184,7 @@ bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 
 
 		// 수치 조정으로 부드럽게 이동
-		TargetWorldLocation.Z += 70.0f;
+		TargetWorldLocation.Z += 35.0f;
 		SetActorLocation(TargetWorldLocation);
 
 		// 나의 현재 그리드 좌표 갱신
@@ -224,28 +196,51 @@ bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 	return false;
 }
 
-//void ATurnBasedUnit::PerformAction() {
-//	// 내 턴이 아니라면 행동하지 않음
-//	if (!bIsMyTurn) {
-//		return;
-//	}
-//
-//	UE_LOG(LogTemp, Log, TEXT("%s performs an action and ends its turn."), *GetName());
-//
-//	// TODO: 여기에 실제 이동, 공격 등의 로직을 구현합니다.
-//	// 애니메이션이나 이동이 모두 끝난 뒤에 아래 함수를 호출해야 합니다.
-//
-//	//if (TurnManager)
-//	//{
-//	//	TurnManager->OnUnitActionFinished();
-//	//}
-//}
+void ATurnBasedUnit::ExecuteEnemyAI()
+{
+	// 즉시 행동하게 하려면 아래 타이머 삭제
+	FTimerHandle AiActionTimer;
+	GetWorld()->GetTimerManager().SetTimer(AiActionTimer, [this]() {
+
+		// 1. 랜덤 방향 선택 (0:상, 1:하, 2:좌, 3:우)
+		int32 RandomDirection = FMath::RandRange(0, 3);
+		bool bMoveSuccess = false;
+
+		switch (RandomDirection)
+		{
+		case 0: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(0, 1)); break;
+		case 1: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(0, -1)); break;
+		case 2: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(-1, 0)); break;
+		case 3: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(1, 0)); break;
+		}
+
+		if (bMoveSuccess)
+		{
+			UE_LOG(LogTemp, Log, TEXT("AI Unit %s moved."), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("AI Unit %s failed to move (blocked)."), *GetName());
+		}
+
+		// 2. (매우 중요) 이동에 성공하든 실패하든, AI의 행동은 끝났으므로 턴을 종료합니다.
+		//    (이동 후 0.5초 정도 더 기다렸다가 턴을 넘겨야 자연스럽습니다)
+		FTimerHandle EndTurnTimer;
+		GetWorld()->GetTimerManager().SetTimer(
+			EndTurnTimer,
+			this,
+			&ATurnBasedUnit::EndTurn, // EndTurn 함수가 TurnManager->OnUnitActionFinished()를 호출
+			0.5f,
+			false
+		);
+
+		}, 0.5f, false);
+}
 
 // Called every frame
 void ATurnBasedUnit::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input

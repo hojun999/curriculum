@@ -32,10 +32,7 @@ public:
 
 	////// ---------- 함수
 
-	// 유닛이 이동이나 공격 같은 행동을 수행하는 함수
-	void PerformAction();
-
-	// GameMode가 유닛을 스폰한 직수 호출할 초기화 함수
+	// GameMode가 유닛을 스폰한 직후 호출할 초기화 함수
 	void Initialize(FIntPoint StartCoordinate);
 
 	// 부모 클래스는 'virtual' 키워드만 사용하여 이 함수들이 재정의될 수 있음을 알림
@@ -52,18 +49,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	// 행동 제출 함수
 	void ExecuteActionQueue();
-
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void MoveUp();
-
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void MoveDown();
-
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void MoveLeft();
-
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-	void MoveRight();
 
 	// 턴을 완전히 종료하고 TurnManager에게 알리는 함수
 	UFUNCTION(BlueprintCallable, Category = "UI")
@@ -109,28 +94,22 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void AddAttack();
 
+	void CommonActionsOnBinding();
 
 	// 실제 이동 로직(bool을 반환하여 성공/실패를 알림)
 	bool AttemptMove(FIntPoint TargetCoordinate);
 
+	// AI 유닛이 턴 시작 시 호출할 함수
+	void ExecuteEnemyAI();
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	// ----- UI 관련 변수 -----
-	// 유닛이 사용할 UI 위젯 클래스, BP에서 설정
-	//UPROPERTY(EditDefaultsOnly, Category = "UI")
-	//TSubclassOf<UUserWidget> ActionWidgetClass;
-
-	// BeginPlay에서 생성된 ActionWidget의 실제 인스턴스
-	// 턴마다 재사용을 위한 저장
-	//UPROPERTY()
-	//UUserWidget* ActionWidgetInstance;
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 };

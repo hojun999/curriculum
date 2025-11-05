@@ -5,14 +5,24 @@
 #include "Tank.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+
+ATower::ATower() {
+	//SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
+	//SpringArm->SetupAttachment(RootComponent);
+
+	//Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	//Camera->SetupAttachment(SpringArm);
+}
 
 void ATower::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (InFireRange()) {
-		RotateTurret(Tank->GetActorLocation());
-	}
+	//if (InFireRange()) {
+	//	RotateTurret(Tank->GetActorLocation());
+	//}
 }
 
 void ATower::HandleDestruction() {

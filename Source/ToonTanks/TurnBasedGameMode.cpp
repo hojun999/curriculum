@@ -7,6 +7,17 @@
 #include "TurnBasedUnit.h"
 #include "TurnManager.h"
 
+ATurnBasedGameMode::ATurnBasedGameMode()
+{
+	// 기본적으로 사용할 Pawn 클래스 설정 (BP에서 변경 가능)
+	// static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("/Game/ToonTanks/Blueprints/BP_Tank"));
+	// if (PlayerPawnBPClass.Class != NULL) {
+	// 	DefaultPawnClass = PlayerPawnBPClass.Class;
+	// }
+
+	DefaultPawnClass = nullptr;
+}
+
 void ATurnBasedGameMode::BeginPlay()
 {
 	Super::BeginPlay();
@@ -77,6 +88,7 @@ void ATurnBasedGameMode::SpawnPawnsForStage()
 	}
 
 	ATurnManager* TurnManager = Cast<ATurnManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ATurnManager::StaticClass()));
+
 	if (TurnManager) {
 		TurnManager->StartCombat(); // 모든 폰들의 배치가 끝난 후 턴을 시작하여 오류 방지
 	}

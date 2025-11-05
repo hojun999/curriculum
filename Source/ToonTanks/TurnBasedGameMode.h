@@ -16,6 +16,7 @@ class TOONTANKS_API ATurnBasedGameMode : public AGameModeBase
 	GENERATED_BODY()
 	
 protected:
+	ATurnBasedGameMode();
 	virtual void BeginPlay() override;
 
 	// 스폰할 폰들의 정보 배열 노출

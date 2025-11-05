@@ -15,6 +15,8 @@ class TOONTANKS_API ATower : public ABasePawn
 	GENERATED_BODY()
 	
 public:
+	ATower();
+
 	virtual void Tick(float DeltaTime) override;
 
 	void HandleDestruction();
@@ -26,6 +28,12 @@ protected:
 private:
 
 	class ATank* Tank;
+
+	//UPROPERTY(VisibleAnywhere, Category = "Component")
+	//class USpringArmComponent* SpringArm;
+
+	//UPROPERTY(VisibleAnywhere, Category = "Component")
+	//class UCameraComponent* Camera;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	float FireRange = 300.f;
