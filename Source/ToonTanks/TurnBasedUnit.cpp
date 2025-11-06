@@ -14,6 +14,10 @@ ATurnBasedUnit::ATurnBasedUnit()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	// 폰이 컨트롤러의 회전을 자동으로 따라가지 않도록 설정
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationRoll = false;
 }
 
 // Called when the game starts or when spawned
@@ -27,6 +31,8 @@ void ATurnBasedUnit::BeginPlay()
 	if (TurnManager) {
 		TurnManager->RegisterUnit(this);
 	}
+
+	GridManagerRef = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
 }
 
 void ATurnBasedUnit::OnTurnStarted_Implementation() {
@@ -57,7 +63,7 @@ void ATurnBasedUnit::OnTurnEnded_Implementation() {
 void ATurnBasedUnit::ProcessNextAction()
 {
 	// 실행 중이 아니거나 턴이 아니면 종료
-	if (!bIsMyTurn || !bIsExecutingActions) {
+	if (!bIsMyTurn || !bIsExecutingActions || bIsMoving) {
 		return;
 	}
 	FIntPoint TargetCoordinate = CurrentGridCoordinate;
@@ -96,19 +102,19 @@ void ATurnBasedUnit::ProcessNextAction()
 		break;
 	case EUnitAction::Attack:
 		break;
-		// TODO: 1. 가장 가까운 적 유닛 찾기
-		// 2. 최대사거리보다 멀면 최대사거리의 gird에 공격
-		// 3. 최대사거리보다 가까우면 해당 유닛 공격
+		UE_LOG(LogTemp, Warning, TEXT("--- Attack Action ---"));
+		HandleAttackAction();
+		break;
 	}
 
-	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(
-		TimerHandle,
-		this,
-		&ATurnBasedUnit::ProcessNextAction,
-		1.5f,
-		false
-	);
+	//FTimerHandle TimerHandle;
+	//GetWorld()->GetTimerManager().SetTimer(
+	//	TimerHandle,
+	//	this,
+	//	&ATurnBasedUnit::ProcessNextAction,
+	//	1.5f,
+	//	false
+	//);
 }
 
 void ATurnBasedUnit::EndTurn()
@@ -146,6 +152,14 @@ void ATurnBasedUnit::CommonActionsOnBinding()
 
 void ATurnBasedUnit::Initialize(FIntPoint StartCoordinate) {
 	CurrentGridCoordinate = StartCoordinate;
+
+	AGridManager* GridManager = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
+	if (GridManager) {
+		ATile* StartTile = GridManager->GetTile(StartCoordinate);
+		if (StartTile) {
+			StartTile->OccupyingUnit = this;
+		}
+	}
 }
 
 void ATurnBasedUnit::ExecuteActionQueue()
@@ -167,25 +181,50 @@ void ATurnBasedUnit::ExecuteActionQueue()
 bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 {
 	// 내 턴일 때만 이동 가능
-	if (!bIsMyTurn)
+	if (!bIsMyTurn || bIsMoving)
 		return false;
 
 	// GridManager 유효성 검사
-	AGridManager* GridManager = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
-	if (!GridManager)
+	if (!GridManagerRef)
 		return false;
+
+	if (GridManagerRef->IsTileOccupied(TargetCoordinate)) {
+		return false;
+	}
 
 	FVector TargetWorldLocation;
 
 	// GridManager에게 목표 좌표 이동 가능 여부 확인
-	if (GridManager->GetTileWorldLocation(TargetCoordinate, TargetWorldLocation)) {
+	if (GridManagerRef->GetTileWorldLocation(TargetCoordinate, TargetWorldLocation)) {
 		// 이동 가능한 경우 해당 위치로 액터 이동
 		UE_LOG(LogTemp, Log, TEXT("%s moves from %s to %s"), *GetName(), *CurrentGridCoordinate.ToString(), *TargetCoordinate.ToString());
 
 
 		// 수치 조정으로 부드럽게 이동
 		TargetWorldLocation.Z += 35.0f;
-		SetActorLocation(TargetWorldLocation);
+
+		// 1. 이동 방향을 그리드 좌표로 계산
+		const FIntPoint DirectionVector = TargetCoordinate - CurrentGridCoordinate;
+
+		// 2. 방향에 따라 목표 Yaw 회전값 게산 (ProcessNextAction의 방향에 맞게 설정)
+		if (DirectionVector == FIntPoint(1, 0)) { // MoveUp
+			SmoothMoveTargetRotation = FRotator(0.0f, 0.0f, 0.0f); // 0도
+		}
+		else if (DirectionVector == FIntPoint(-1, 0)) { // MoveDown
+			SmoothMoveTargetRotation = FRotator(0.0f, 180.0f, 0.0f);
+		}
+		else if (DirectionVector == FIntPoint(0, -1)) { // MoveLeft
+			SmoothMoveTargetRotation = FRotator(0.0f, -90.0f, 0.0f);
+		}
+		else if (DirectionVector == FIntPoint(0, 1)) { // MoveRight
+			SmoothMoveTargetRotation = FRotator(0.0f, 90.0f, 0.0f);
+		}
+
+		// 3. 이동 및 회전 시작
+		SmoothMoveTargetLocation = TargetWorldLocation;
+		bIsMoving = true; // 이동 시작
+
+		GridManagerRef->UpdateTileOccupancy(CurrentGridCoordinate, TargetCoordinate, this);
 
 		// 나의 현재 그리드 좌표 갱신
 		CurrentGridCoordinate = TargetCoordinate;
@@ -208,10 +247,10 @@ void ATurnBasedUnit::ExecuteEnemyAI()
 
 		switch (RandomDirection)
 		{
-		case 0: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(0, 1)); break;
-		case 1: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(0, -1)); break;
-		case 2: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(-1, 0)); break;
-		case 3: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(1, 0)); break;
+		case 0: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(1, 0)); break; // up
+		case 1: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(-1, 0)); break; // down
+		case 2: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(0, -1)); break; // left
+		case 3: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(0, 1)); break; // right
 		}
 
 		if (bMoveSuccess)
@@ -221,18 +260,8 @@ void ATurnBasedUnit::ExecuteEnemyAI()
 		else
 		{
 			UE_LOG(LogTemp, Log, TEXT("AI Unit %s failed to move (blocked)."), *GetName());
+			EndTurn();
 		}
-
-		// 2. (매우 중요) 이동에 성공하든 실패하든, AI의 행동은 끝났으므로 턴을 종료합니다.
-		//    (이동 후 0.5초 정도 더 기다렸다가 턴을 넘겨야 자연스럽습니다)
-		FTimerHandle EndTurnTimer;
-		GetWorld()->GetTimerManager().SetTimer(
-			EndTurnTimer,
-			this,
-			&ATurnBasedUnit::EndTurn, // EndTurn 함수가 TurnManager->OnUnitActionFinished()를 호출
-			0.5f,
-			false
-		);
 
 		}, 0.5f, false);
 }
@@ -241,12 +270,62 @@ void ATurnBasedUnit::ExecuteEnemyAI()
 void ATurnBasedUnit::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// 현재 부드러운 이동 중인지 확인
+	if (bIsMoving) {
+		FVector CurrentLocation = GetActorLocation();
+		FRotator CurrentRotation = GetActorRotation();
+
+		// ----- 부드러운 회전
+
+		// RInterpTo를 사용해 현재 회전에서 목표 회전으로 부드럽게 보간
+		FRotator NewRotation = FMath::RInterpTo(
+			CurrentRotation,
+			SmoothMoveTargetRotation,
+			DeltaTime,
+			RotationSpeed
+		);
+
+		SetActorRotation(NewRotation);
+
+		// ----- 부드러운 이동
+		FVector NewLocation = FMath::VInterpTo(
+			CurrentLocation, // 현재 위치
+			SmoothMoveTargetLocation, // 목표 위치
+			DeltaTime, // 델타 타임
+			MoveSpeed / 100.0f // 보간 속도
+		);
+
+		SetActorLocation(NewLocation); // 계산된 위치값 적용
+
+		// 이동 완료 확인
+		if (FVector::DistSquared(NewLocation, SmoothMoveTargetLocation) < 10.0f) {
+			SetActorLocation(SmoothMoveTargetLocation); // 이동값 정확히 스냅
+			SetActorRotation(SmoothMoveTargetRotation); // 회전값 정확히 스냅
+			bIsMoving = false;
+
+			if (bIsAlly)
+			{
+				FTimerHandle TimerHandle;
+				GetWorld()->GetTimerManager().SetTimer(
+					TimerHandle,
+					this,
+					&ATurnBasedUnit::ProcessNextAction,
+					0.2f,
+					false
+				);
+			}
+			else
+			{
+				FTimerHandle TimerHandle;
+				GetWorld()->GetTimerManager().SetTimer(
+					TimerHandle,
+					this,
+					&ATurnBasedUnit::EndTurn,
+					0.2f,
+					false
+				);
+			}
+		}
+	}
 }
-
-// Called to bind functionality to input
-//void ATurnBasedUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-//{
-//	Super::SetupPlayerInputComponent(PlayerInputComponent);
-//
-//}
-

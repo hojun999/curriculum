@@ -17,6 +17,15 @@ public:
 	// Sets default values for this actor's properties
 	AGridManager();
 
+	// 좌표로 타일 액터를 바로 가져오는 함수
+	ATile* GetTile(FIntPoint TileCoordinate) const;
+
+	// 타일이 점유되었는지 확인하는 함수
+	bool IsTileOccupied(FIntPoint TileCorrdinate) const;
+
+	// 유닛 이동 시 타일 점유 상태를 업데이트하는 함수
+	void UpdateTileOccupancy(FIntPoint OldCoordinate, FIntPoint NewCoordinate, ATurnBasedUnit* Unit);
+
 	// 에디터에서 속성이 변경될 때 호출되는 함수
 	virtual void OnConstruction(const FTransform& Transform) override;
 
@@ -33,6 +42,10 @@ protected:
 
 	UPROPERTY()
 	TArray<AActor*> SpawnedTiles;	// 생성된 타일들을 저장할 배열
+
+	// FIntPoint 좌표를 key로, 스폰된 타일 액터를 value로 저장하는 TMap
+	UPROPERTY()
+	TMap<FIntPoint, ATile*> TileMap;
 
 	// 그리드 좌표(FIntPoint)를 키로, 월드 위치(FVector)를 값으로 저장하는 TMap
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Data")

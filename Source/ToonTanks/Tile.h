@@ -4,7 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+//#include "TurnBasedUnit.h"
+
 #include "Tile.generated.h"
+
+class ATurnBasedUnit;
 
 UCLASS()
 class TOONTANKS_API ATile : public AActor
@@ -20,6 +24,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Tile")
 	void SetTileColor(FLinearColor NewColor);
+
+	// 해당 타일에 있는 유닛
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tile State")
+	ATurnBasedUnit* OccupyingUnit = nullptr;
+
+	// 해당 타일이 점유되었는지 확인하는 함수
+	UFUNCTION(BlueprintPure, Category = "Tile State")
+	bool IsOccupied() const {
+		return OccupyingUnit != nullptr;
+	}
 
 protected:
 	// Called when the game starts or when spawned

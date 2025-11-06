@@ -11,6 +11,35 @@ AGridManager::AGridManager()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+ATile* AGridManager::GetTile(FIntPoint TileCoordinate) const
+{
+	return TileMap.FindRef(TileCoordinate);
+}
+
+bool AGridManager::IsTileOccupied(FIntPoint TileCoordinate) const
+{
+	ATile* Tile = GetTile(TileCoordinate);
+	if (Tile) {
+		return Tile->IsOccupied();
+	}
+	return true; // 타일이 없는 곳은 갈 수 없는 곳으로 취급
+}
+
+void AGridManager::UpdateTileOccupancy(FIntPoint OldCoordinate, FIntPoint NewCoordinate, ATurnBasedUnit* Unit)
+{
+	// 이전 타일의 점유 정보 비우기
+	ATile* OldTile = GetTile(OldCoordinate);
+	if (OldTile) {
+		OldTile->OccupyingUnit = nullptr;
+	}
+
+	// 새 타일에 점유 정보 등록
+	ATile* NewTile = GetTile(NewCoordinate);
+	if (NewTile) {
+		NewTile->OccupyingUnit = Unit;
+	}
+}
+
 bool AGridManager::GetTileWorldLocation(FIntPoint TileCoordinate, FVector& WorldLocation) const
 {
 	// TMap에서 해당 좌표에 대한 월드 위치 값 찾기
@@ -35,18 +64,30 @@ void AGridManager::BeginPlay()
 
 void AGridManager::ClearGrid()
 {
-	// 배열에 저장된 모든 타일 액터 순회 및 파괴
-	for (AActor* Tile : SpawnedTiles)
-	{
-		if (Tile) {
-			Tile->Destroy();
+	// --- new
+	for (const TPair<FIntPoint, ATile*>& TilePair : TileMap) {
+		if (TilePair.Value) {
+			TilePair.Value->Destroy();
 		}
 	}
-	// 배열 비우기
-	SpawnedTiles.Empty();
+	TileMap.Empty();
 
-	//TMap 비우기
 	TileLocations.Empty();
+
+
+	// --- old
+	// 배열에 저장된 모든 타일 액터 순회 및 파괴
+	//for (AActor* Tile : SpawnedTiles)
+	//{
+	//	if (Tile) {
+	//		Tile->Destroy();
+	//	}
+	//}
+	//// 배열 비우기
+	//SpawnedTiles.Empty();
+
+	////TMap 비우기
+	//TileLocations.Empty();
 }
 
 void AGridManager::GenerateGrid()
@@ -76,7 +117,7 @@ void AGridManager::GenerateGrid()
 			ATile* SpawnedTile = GetWorld()->SpawnActor<ATile>(TileClass, SpawnLocation, FRotator::ZeroRotator);
 
 			if (SpawnedTile) {
-				SpawnedTiles.Add(SpawnedTile);
+				TileMap.Add(GridCoordinate, SpawnedTile);
 			}
 		}
 	}

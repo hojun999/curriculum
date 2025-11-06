@@ -16,16 +16,6 @@ ATank::ATank() {
 void ATank::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (TankPlayerController) {
-		FHitResult HitResult;
-		TankPlayerController->GetHitResultUnderCursor(
-			ECollisionChannel::ECC_Visibility,
-			false,
-			HitResult);
-
-		RotateTurret(HitResult.ImpactPoint);
-	}
 }
 
 void ATank::HandleDestruction() {
@@ -38,5 +28,4 @@ void ATank::BeginPlay() {
 	Super::BeginPlay();
 
 	TankPlayerController = Cast<APlayerController>(GetController());
-
 }

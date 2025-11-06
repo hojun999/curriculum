@@ -4,6 +4,8 @@
 #include "GameFramework/Pawn.h"
 #include "TurnActionTypes.h"
 #include "Containers/Queue.h"
+#include "GridManager.h"
+
 #include "TurnBasedUnit.generated.h"
 
 class ATurnManager;
@@ -59,6 +61,9 @@ private:
 	//void AttemptMove(FIntPoint TargetCoordinate);
 
 protected:
+
+	// ----- 변수
+
 	// 모든 유닛이 TurnManager에 쉽게 접근할 수 있도록 참조 저장
 	UPROPERTY()
 	ATurnManager* TurnManager;
@@ -78,9 +83,29 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn System")
 	bool bIsExecutingActions = false;
 
+	// 이동이 진행 중인지 여부
+	bool bIsMoving = false;
+
+	// 이동할 목표의 월드 위치
+	FVector SmoothMoveTargetLocation;
+
+	// 부드러운 회전 목표값 (Yaw)
+	FRotator SmoothMoveTargetRotation;
+
+	// 이동 속도
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float MoveSpeed = 300.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float RotationSpeed = 10.0f;
+
+	UPROPERTY()
+	AGridManager* GridManagerRef;
+
+	// ----- 함수
+
 	// 큐에 쌓인 action 처리 함수
 	void ProcessNextAction();
-
 
 	// 기존 이동 함수들 입력 바인드용으로 래핑
 	UFUNCTION(BlueprintCallable, Category = "UI")

@@ -11,6 +11,7 @@ class UCapsuleComponent;
 class UStaticMeshComponent;
 class USceneComponent;
 class UFloatingPawnMovement;
+class AProjectile;
 
 UCLASS()
 class TOONTANKS_API ABasePawn : public ATurnBasedUnit
@@ -29,11 +30,41 @@ public:
 	virtual void OnTurnStarted_Implementation() override;
 	virtual void OnTurnEnded_Implementation() override;
 
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AAcotr* DamageCauser) override;
+
 protected:
-	void RotateTurret(FVector LookAtTarget);
+	//void RotateTurret(FVector LookAtTarget);
+
+
+	virtual void Tick(float DeltaTime) override;
+
+	// 공격 큐를 처리할 때 호출되는 함수(ProcessNextAction에서 호출)
+	void HandleAttackAction();
+
+	// 가장 가까운 적 유닛을 찾는 함수
+	ATurnBasedUnit* FindClosestEnemy();
+
+	// 포탑 회전 및 발사 로직
+	void AimAndFire(FVector TargetLocation, bool bWillDealDamage);
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void Fire();
+	void Fire(bool bShouldDealDamage);
+
+	// ----- 전투 관련 변수
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	float Health = 20.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	float MaxAttackRange = 1500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	float AttackDamage = 10.0f;
+
+	// 조준 상태 변수
+	bool bIsAiming = false; // 현재 조준 중인지 여부
+	FVector AimTargetLocation; // 조준할 목표의 월드 위치
+	bool bShotWillDealDamage = false; // 이 공격이 데미지를 입힐지 여부 (Projectile에게 전달)
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
