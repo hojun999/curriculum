@@ -68,9 +68,11 @@ protected:
 	UPROPERTY()
 	ATurnManager* TurnManager;
 
+	ATurnManager* GetTurnManager();
+
 	// 턴마다 주어지는 최대 행동력
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn System")
-	int32 MaxActionPoints = 3;
+	int32 MaxActionPoints = 5;
 
 	// 현재 남은 행동력(큐에 추가할 때마다 차감)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn System")
@@ -123,6 +125,9 @@ protected:
 
 	// 실제 이동 로직(bool을 반환하여 성공/실패를 알림)
 	bool AttemptMove(FIntPoint TargetCoordinate);
+
+	// 자식 클래스가 재정의할 수 있는 가상 공격 함수	
+	virtual void HandleAttackAction();
 
 	// AI 유닛이 턴 시작 시 호출할 함수
 	void ExecuteEnemyAI();

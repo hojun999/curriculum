@@ -27,7 +27,7 @@ public:
 	void UpdateTileOccupancy(FIntPoint OldCoordinate, FIntPoint NewCoordinate, ATurnBasedUnit* Unit);
 
 	// 에디터에서 속성이 변경될 때 호출되는 함수
-	virtual void OnConstruction(const FTransform& Transform) override;
+	//virtual void OnConstruction(const FTransform& Transform) override;
 
 	// 그리드 좌표에 해당하는 타일의 월드 중앙 위치 반환
 	// TileCoordinate 찾고자 하는 타일의 글리드 좌표 (X, Y)

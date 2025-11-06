@@ -28,12 +28,7 @@ public:
 	// TurnBasedUnit이 자신을 TurnManager에 등록하는 함수
 	void RegisterUnit(ATurnBasedUnit* Unit);
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn System")
-	ETurnState CurrentTurn;
+	void UnregisterUnit(ATurnBasedUnit* Unit);
 
 	// 전투에 참여하는 모든 아군 유닛
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn System")
@@ -41,6 +36,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn System")
 	TArray<ATurnBasedUnit*> EnemyUnits;
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn System")
+	ETurnState CurrentTurn;
 
 private:
 	void StartAllyTurn();

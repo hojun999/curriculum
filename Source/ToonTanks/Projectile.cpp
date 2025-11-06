@@ -33,21 +33,36 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimi
 		return;
 	}
 
-	AController* MyOwnerInstigator = MyOwner->GetInstigatorController();
-	UClass* DamageTypeClass = UDamageType::StaticClass();
-
+	// 자기 자신이나 오너를 맞췄으면 무시
 	if (OtherActor && OtherActor != this && OtherActor != MyOwner) {
-		UGameplayStatics::ApplyDamage(OtherActor, Damage, MyOwnerInstigator, this, DamageTypeClass);
-		if (HitParticles) {
-			UGameplayStatics::SpawnEmitterAtLocation(this, HitParticles, GetActorLocation(), GetActorRotation());
+		if (bShouldDealDamage) {
+			UGameplayStatics::ApplyDamage(
+				OtherActor,
+				DamageToDeal,
+				MyOwner->GetInstigatorController(),
+				this,
+				UDamageType::StaticClass()
+			);
 		}
+
+		if (HitParticles) {
+			UGameplayStatics::SpawnEmitterAtLocation(
+				this,
+				HitParticles,
+				GetActorLocation(),
+				GetActorRotation()
+			);
+		}
+
 		if (HitSound) {
 			UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
 		}
+
 		if (HitCameraShakeClass) {
 			GetWorld()->GetFirstPlayerController()->ClientStartCameraShake(HitCameraShakeClass);
 		}
 	}
+
 	Destroy();
 }
 

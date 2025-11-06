@@ -123,16 +123,16 @@ void AGridManager::GenerateGrid()
 	}
 }
 
-void AGridManager::OnConstruction(const FTransform& Transform)
-{
-	Super::OnConstruction(Transform);
-
-	// 扁粮俊 积己等 鸥老甸 傈何 昏力
-	ClearGrid();
-
-	// 货肺款 弊府靛 积己
-	GenerateGrid();
-}
+//void AGridManager::OnConstruction(const FTransform& Transform)
+//{
+//	Super::OnConstruction(Transform);
+//
+//	// 扁粮俊 积己等 鸥老甸 傈何 昏力
+//	ClearGrid();
+//
+//	// 货肺款 弊府靛 积己
+//	GenerateGrid();
+//}
 
 // Called every frame
 void AGridManager::Tick(float DeltaTime)

@@ -58,6 +58,19 @@ void ATurnManager::RegisterUnit(ATurnBasedUnit* Unit)
 	}
 }
 
+void ATurnManager::UnregisterUnit(ATurnBasedUnit* Unit)
+{
+	if (!Unit) {
+		return;
+	}
+	if (Unit->bIsAlly) {
+		AllyUnits.Remove(Unit);
+	}
+	else {
+		EnemyUnits.Remove(Unit);
+	}
+}
+
 void ATurnManager::StartAllyTurn()
 {
 	UE_LOG(LogTemp, Warning, TEXT("--- Ally Turn Started ---"));

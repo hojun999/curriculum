@@ -17,6 +17,12 @@ public:
 	// Sets default values for this actor's properties
 	AProjectile();
 
+	// 해당 발사체가 데미지를 입힐지 여부(BasePawn이 설정)
+	bool bShouldDealDamage = false;
+
+	// 해당 발사체가 입힐 데미지(BasePawn이 설정)
+	float DamageToDeal = 0.0f;
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	UStaticMeshComponent* ProjectileMesh;

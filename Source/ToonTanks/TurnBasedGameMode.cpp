@@ -6,6 +6,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "TurnBasedUnit.h"
 #include "TurnManager.h"
+#include "Tower.h"
+#include "GameFramework/PlayerController.h"
+#include "Blueprint/UserWidget.h"
+#include "BasePawn.h"
+
 
 ATurnBasedGameMode::ATurnBasedGameMode()
 {
@@ -24,6 +29,24 @@ void ATurnBasedGameMode::BeginPlay()
 
 	// 스테이지 시작
 	SpawnPawnsForStage();
+
+	// 월드에 있는 모든 ABasePawn을 찾음
+	TArray<AActor*> FoundPawns;
+	// 중요: ABasePawn::StaticClass()를 사용합니다.
+	UGameplayStatics::GetAllActorsOfClass(this, ABasePawn::StaticClass(), FoundPawns);
+
+	EnemyTurretCount = 0;
+	for (AActor* PawnActor : FoundPawns)
+	{
+		ABasePawn* Pawn = Cast<ABasePawn>(PawnActor);
+		// 'Ally'가 아닌 폰 (즉, bIsAlly == false 인 적)의 수를 셉니다.
+		if (Pawn && !Pawn->bIsAlly)
+		{
+			EnemyTurretCount++;
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Initial Enemy Count: %d"), EnemyTurretCount);
 }
 
 void ATurnBasedGameMode::SpawnPawnsForStage()
@@ -95,4 +118,72 @@ void ATurnBasedGameMode::SpawnPawnsForStage()
 	else {
 		UE_LOG(LogTemp, Error, TEXT("SpawnPawnsForStage: TurnManager not found!"));
 	}
+}
+
+// 이 함수는 BasePawn의 TakeDamage에서 호출될 것입니다.
+void ATurnBasedGameMode::ActorDied(AActor* DeadActor)
+{
+	// 죽은 액터가 ABasePawn을 상속받았는지 확인
+	ABasePawn* DeadPawn = Cast<ABasePawn>(DeadActor);
+	if (DeadPawn)
+	{
+		// 죽은 폰이 '적'(!bIsAlly)인지 확인
+		if (!DeadPawn->bIsAlly)
+		{
+			EnemyTurretCount--;
+			UE_LOG(LogTemp, Warning, TEXT("An enemy turret died. Remaining: %d"), EnemyTurretCount);
+
+			if (EnemyTurretCount <= 0)
+			{
+				// 게임 클리어!
+				HandleGameOver(true); // true = Player Won
+			}
+		}
+		else
+		{
+			// 플레이어 사망
+			HandleGameOver(false); // false = Player Lost
+		}
+	}
+}
+// 게임 클리어 또는 게임 오버 처리
+void ATurnBasedGameMode::HandleGameOver(bool bPlayerWon)
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PC) return;
+
+	if (bPlayerWon)
+	{
+		// --- 게임 클리어 ---
+		UE_LOG(LogTemp, Warning, TEXT("--- GAME CLEAR (Player Won) ---"));
+
+		// 1. 게임 클리어 위젯 생성 및 표시
+		if (GameClearWidgetClass)
+		{
+			UUserWidget* ClearWidget = CreateWidget(PC, GameClearWidgetClass);
+			if (ClearWidget)
+			{
+				ClearWidget->AddToViewport();
+			}
+		}
+	}
+	else
+	{
+		// --- 게임 오버 ---
+		UE_LOG(LogTemp, Warning, TEXT("--- GAME OVER (Player Lost) ---"));
+
+		// 2. 게임 오버 위젯 생성 및 표시
+		if (GameOverWidgetClass)
+		{
+			UUserWidget* GameOverWidget = CreateWidget(PC, GameOverWidgetClass);
+			if (GameOverWidget)
+			{
+				GameOverWidget->AddToViewport();
+			}
+		}
+	}
+
+	// 3. 게임 일시정지 및 입력 비활성화
+	PC->SetPause(true);
+	PC->SetShowMouseCursor(true); // 마우스 커서 표시
 }

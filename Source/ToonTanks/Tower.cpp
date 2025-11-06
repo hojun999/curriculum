@@ -31,23 +31,13 @@ void ATower::BeginPlay() {
 
 	Tank = Cast<ATank>(UGameplayStatics::GetPlayerPawn(this, 0));
 
-	GetWorldTimerManager().SetTimer(
-		FireRateTimerHandel,
-		this,
-		&ATower::CheckFireCondition,
-		FireRate,
-		true);
+	//GetWorldTimerManager().SetTimer(
+	//	FireRateTimerHandel,
+	//	this,
+	//	&ATower::CheckFireCondition,
+	//	FireRate,
+	//	true);
 
-}
-
-void ATower::CheckFireCondition()
-{
-	if (Tank == nullptr) {
-		return;
-	}
-	if (InFireRange() && Tank->bAlive) {
-		Fire();
-	}
 }
 
 bool ATower::InFireRange()

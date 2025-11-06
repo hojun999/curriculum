@@ -30,16 +30,17 @@ public:
 	virtual void OnTurnStarted_Implementation() override;
 	virtual void OnTurnEnded_Implementation() override;
 
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AAcotr* DamageCauser) override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 protected:
-	//void RotateTurret(FVector LookAtTarget);
-
+	ATurnManager* TurnManager;
 
 	virtual void Tick(float DeltaTime) override;
 
+	void BeginPlay() override;
+
 	// 공격 큐를 처리할 때 호출되는 함수(ProcessNextAction에서 호출)
-	void HandleAttackAction();
+	virtual void HandleAttackAction() override;
 
 	// 가장 가까운 적 유닛을 찾는 함수
 	ATurnBasedUnit* FindClosestEnemy();
@@ -53,7 +54,7 @@ protected:
 	// ----- 전투 관련 변수
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	float Health = 20.0f;
+	float Health = 30.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	float MaxAttackRange = 1500.0f;

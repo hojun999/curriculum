@@ -26,14 +26,37 @@ void ATurnBasedUnit::BeginPlay()
 	Super::BeginPlay();
 	
 	// 게임이 시작되면 월드의 TurnManager를 찾아 저장
-	TurnManager = Cast<ATurnManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ATurnManager::StaticClass()));
+	ATurnManager* FoundManager = Cast<ATurnManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ATurnManager::StaticClass()));
 
-	if (TurnManager) {
-		TurnManager->RegisterUnit(this);
+	if (FoundManager) {
+		FoundManager->RegisterUnit(this);
 	}
 
 	GridManagerRef = Cast<AGridManager>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridManager::StaticClass()));
 }
+
+ATurnManager* ATurnBasedUnit::GetTurnManager()
+{
+	// 1. 변수가 이미 유효한지(찾아뒀는지) 확인
+	if (TurnManager)
+	{
+		return TurnManager;
+	}
+
+	// 2. 변수가 NULL이라면, 지금 월드에서 다시 찾기
+	TurnManager = Cast<ATurnManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ATurnManager::StaticClass()));
+
+	// 3. 찾았는지 확인
+	if (TurnManager)
+	{
+		return TurnManager;
+	}
+
+	// 4. 그래도 못 찾았다면 에러 로그 출력
+	UE_LOG(LogTemp, Error, TEXT("GetTurnManager() FAILED: TurnManager Actor could not be found in the world."));
+	return nullptr;
+}
+
 
 void ATurnBasedUnit::OnTurnStarted_Implementation() {
 	UE_LOG(LogTemp, Log, TEXT("%s's turn started."), *GetName());
@@ -66,6 +89,22 @@ void ATurnBasedUnit::ProcessNextAction()
 	if (!bIsMyTurn || !bIsExecutingActions || bIsMoving) {
 		return;
 	}
+	
+	// 1. 현재 폰의 회전값과 '앞' 방향을 가져옴
+	const FRotator CurrentRotation = GetActorRotation();
+	const FVector ForwardVector = CurrentRotation.Vector();
+
+	// 2. '앞' 방향을 가장 가까운 그리드 축 방향으로 변환
+	const FIntPoint ForwardDirection = FIntPoint(FMath::RoundToInt(ForwardVector.X),
+		FMath::RoundToInt(ForwardVector.Y)
+	);
+
+	// 3. 현재 방향 기준으로 상하좌우 방향 미리 계산
+	const FIntPoint BackwardDirection = ForwardDirection * -1;
+	const FIntPoint LeftDirection = FIntPoint(ForwardDirection.Y, -ForwardDirection.X);
+	const FIntPoint RightDirection = FIntPoint(-ForwardDirection.Y, ForwardDirection.X);
+
+	// 이동할 목표 좌표
 	FIntPoint TargetCoordinate = CurrentGridCoordinate;
 
 	EUnitAction NextAction;
@@ -79,42 +118,42 @@ void ATurnBasedUnit::ProcessNextAction()
 	// 큐에 행동이 남아있다면, 하나를 실행
 	bool bActionSuccess = false;
 
+	// 4. 어떤 행동이냐에 따라 '목표 회전값'과 '목표 좌표' 설정
 	switch (NextAction) {
 	case EUnitAction::MoveUp:
-		UE_LOG(LogTemp, Warning, TEXT("--- Move Up ---"));
-		TargetCoordinate += FIntPoint(1, 0);
+		UE_LOG(LogTemp, Warning, TEXT("--- Move Up (Forward) ---"));
+		// "UP은 회전 없이 전진"
+		SmoothMoveTargetRotation = CurrentRotation; // 현재 각도 유지
+		TargetCoordinate += ForwardDirection;
 		bActionSuccess = AttemptMove(TargetCoordinate);
 		break;
 	case EUnitAction::MoveDown:
-		UE_LOG(LogTemp, Warning, TEXT("--- Move Down ---"));
-		TargetCoordinate += FIntPoint(-1, 0);
+		UE_LOG(LogTemp, Warning, TEXT("--- Move Down (Backward) ---"));
+		// "DOWN은 180도 회전"
+		SmoothMoveTargetRotation = FRotator(0.0f, CurrentRotation.Yaw + 180.0f, 0.0f);
+		TargetCoordinate += BackwardDirection;
 		bActionSuccess = AttemptMove(TargetCoordinate);
 		break;
 	case EUnitAction::MoveLeft:
 		UE_LOG(LogTemp, Warning, TEXT("--- Move Left ---"));
-		TargetCoordinate += FIntPoint(0, -1);
+		// "LEFT는 좌측 90도 회전"
+		SmoothMoveTargetRotation = FRotator(0.0f, CurrentRotation.Yaw - 90.0f, 0.0f);
+		TargetCoordinate += LeftDirection;
 		bActionSuccess = AttemptMove(TargetCoordinate);
 		break;
 	case EUnitAction::MoveRight:
 		UE_LOG(LogTemp, Warning, TEXT("--- Move Right ---"));
-		TargetCoordinate += FIntPoint(0, 1);
+		// "RIGHT는 우측 90도 회전"
+		SmoothMoveTargetRotation = FRotator(0.0f, CurrentRotation.Yaw + 90.0f, 0.0f);
+		TargetCoordinate += RightDirection;
 		bActionSuccess = AttemptMove(TargetCoordinate);
 		break;
 	case EUnitAction::Attack:
-		break;
 		UE_LOG(LogTemp, Warning, TEXT("--- Attack Action ---"));
 		HandleAttackAction();
 		break;
 	}
 
-	//FTimerHandle TimerHandle;
-	//GetWorld()->GetTimerManager().SetTimer(
-	//	TimerHandle,
-	//	this,
-	//	&ATurnBasedUnit::ProcessNextAction,
-	//	1.5f,
-	//	false
-	//);
 }
 
 void ATurnBasedUnit::EndTurn()
@@ -132,8 +171,8 @@ void ATurnBasedUnit::EndTurn()
 	CurrentActionPoints = 0;
 
 	// TurnManager에게 턴이 끝났음을 보고
-	if (TurnManager) {
-		TurnManager->OnUnitActionFinished();
+	if (GetTurnManager()) {
+		GetTurnManager()->OnUnitActionFinished();
 	}
 }
 
@@ -203,27 +242,11 @@ bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 		// 수치 조정으로 부드럽게 이동
 		TargetWorldLocation.Z += 35.0f;
 
-		// 1. 이동 방향을 그리드 좌표로 계산
-		const FIntPoint DirectionVector = TargetCoordinate - CurrentGridCoordinate;
-
-		// 2. 방향에 따라 목표 Yaw 회전값 게산 (ProcessNextAction의 방향에 맞게 설정)
-		if (DirectionVector == FIntPoint(1, 0)) { // MoveUp
-			SmoothMoveTargetRotation = FRotator(0.0f, 0.0f, 0.0f); // 0도
-		}
-		else if (DirectionVector == FIntPoint(-1, 0)) { // MoveDown
-			SmoothMoveTargetRotation = FRotator(0.0f, 180.0f, 0.0f);
-		}
-		else if (DirectionVector == FIntPoint(0, -1)) { // MoveLeft
-			SmoothMoveTargetRotation = FRotator(0.0f, -90.0f, 0.0f);
-		}
-		else if (DirectionVector == FIntPoint(0, 1)) { // MoveRight
-			SmoothMoveTargetRotation = FRotator(0.0f, 90.0f, 0.0f);
-		}
-
-		// 3. 이동 및 회전 시작
+		// 이동 및 회전 시작
 		SmoothMoveTargetLocation = TargetWorldLocation;
 		bIsMoving = true; // 이동 시작
 
+		// 타일 점유 상태 업데이트
 		GridManagerRef->UpdateTileOccupancy(CurrentGridCoordinate, TargetCoordinate, this);
 
 		// 나의 현재 그리드 좌표 갱신
@@ -235,37 +258,72 @@ bool ATurnBasedUnit::AttemptMove(FIntPoint TargetCoordinate)
 	return false;
 }
 
+void ATurnBasedUnit::HandleAttackAction()
+{
+	// 기본 TurnBasedUnit은 공격 시 아무것도 하지 않음.
+	// 큐가 멈추지 않도록 다음 큐를 즉시 호출하거나 턴을 종료해야 함.
+	// 하지만 BasePawn이 항상 override할 것이므로 비워두거나,
+	// 안전을 위해 ProcessNextAction을 호출
+	ProcessNextAction();
+}
+
 void ATurnBasedUnit::ExecuteEnemyAI()
 {
 	// 즉시 행동하게 하려면 아래 타이머 삭제
 	FTimerHandle AiActionTimer;
 	GetWorld()->GetTimerManager().SetTimer(AiActionTimer, [this]() {
 
-		// 1. 랜덤 방향 선택 (0:상, 1:하, 2:좌, 3:우)
+		// 1. AI도 플레이어처럼 현재 방향을 기준으로 로직을 수행
+		const FRotator CurrentRotation = GetActorRotation();
+		const FVector ForwardVector = CurrentRotation.Vector();
+		const FIntPoint ForwardDirection = FIntPoint(FMath::RoundToInt(ForwardVector.X), FMath::RoundToInt(ForwardVector.Y));
+		const FIntPoint BackwardDirection = ForwardDirection * -1;
+		const FIntPoint LeftDirection = FIntPoint(ForwardDirection.Y, -ForwardDirection.X);
+		const FIntPoint RightDirection = FIntPoint(-ForwardDirection.Y, ForwardDirection.X);
+
+		FIntPoint TargetCoordinate; // AI가 이동할 목표 좌표
+
 		int32 RandomDirection = FMath::RandRange(0, 3);
 		bool bMoveSuccess = false;
 
+		// 2. 랜덤 방향에 따라 '목표 회전값'과 '목표 좌표'를 설정
 		switch (RandomDirection)
 		{
-		case 0: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(1, 0)); break; // up
-		case 1: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(-1, 0)); break; // down
-		case 2: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(0, -1)); break; // left
-		case 3: bMoveSuccess = AttemptMove(CurrentGridCoordinate + FIntPoint(0, 1)); break; // right
+		case 0: // MoveUp (Forward)
+			SmoothMoveTargetRotation = CurrentRotation;
+			TargetCoordinate = CurrentGridCoordinate + ForwardDirection;
+			break;
+		case 1: // MoveDown (Backward)
+			SmoothMoveTargetRotation = FRotator(0.0f, CurrentRotation.Yaw + 180.0f, 0.0f);
+			TargetCoordinate = CurrentGridCoordinate + BackwardDirection;
+			break;
+		case 2: // MoveLeft
+			SmoothMoveTargetRotation = FRotator(0.0f, CurrentRotation.Yaw - 90.0f, 0.0f);
+			TargetCoordinate = CurrentGridCoordinate + LeftDirection;
+			break;
+		case 3: // MoveRight
+			SmoothMoveTargetRotation = FRotator(0.0f, CurrentRotation.Yaw + 90.0f, 0.0f);
+			TargetCoordinate = CurrentGridCoordinate + RightDirection;
+			break;
 		}
+
+		// 3. 설정된 목표 좌표로 이동 시도
+		bMoveSuccess = AttemptMove(TargetCoordinate);
 
 		if (bMoveSuccess)
 		{
 			UE_LOG(LogTemp, Log, TEXT("AI Unit %s moved."), *GetName());
+			// [참고] 이동에 성공하면 Tick 함수가 bIsAlly=false를 감지하고
+			// 자동으로 EndTurn을 호출해줍니다.
 		}
 		else
 		{
 			UE_LOG(LogTemp, Log, TEXT("AI Unit %s failed to move (blocked)."), *GetName());
-			EndTurn();
+			EndTurn(); // 이동에 실패하면(길이 막힘) 즉시 턴 종료
 		}
 
-		}, 0.5f, false);
+		}, 0.2f, false);
 }
-
 // Called every frame
 void ATurnBasedUnit::Tick(float DeltaTime)
 {
