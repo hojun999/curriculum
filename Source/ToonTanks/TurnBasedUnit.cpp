@@ -151,7 +151,22 @@ void ATurnBasedUnit::ProcessNextAction()
 	case EUnitAction::Attack:
 		UE_LOG(LogTemp, Warning, TEXT("--- Attack Action ---"));
 		HandleAttackAction();
-		break;
+		return;
+	}
+
+	if (!bActionSuccess)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Move action failed (e.g., blocked). Processing next action in queue."));
+
+		// Tick에서 호출하는 것과 동일하게 타이머로 약간의 딜레이 후 다음 행동 처리
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle,
+			this,
+			&ATurnBasedUnit::ProcessNextAction,
+			0.2f, // Tick과 동일한 딜레이
+			false
+		);
 	}
 
 }

@@ -57,7 +57,7 @@ protected:
 	float Health = 30.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
-	float MaxAttackRange = 1500.0f;
+	float MaxAttackRange = 2000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	float AttackDamage = 10.0f;
